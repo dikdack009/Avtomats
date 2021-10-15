@@ -61,8 +61,7 @@ class AppClass:
 
 	def CheckString(self, string):
 
-		title = "ed2k://"
-		server = "|server|"
+
 		digits19 = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
 		symbols = list(map(chr, range(97, 123)))
 		symbols.append("2")
