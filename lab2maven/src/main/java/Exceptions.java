@@ -12,3 +12,7 @@ class BracketsException extends RuntimeException{
     public BracketsException() {super(new Exceptions() +
             "Неверное количество скобок.");}
 }
+class StarException extends RuntimeException{
+    public StarException() {super(new Exceptions() +
+            "Ошибка в использовании операции ‘замыкание Клини’: r…");}
+}
