@@ -107,9 +107,10 @@ public class SyntaxTree {
                 String.valueOf(i).equals(")");
     }
 
-    private int isContainsExpression (List<Expression> expressionList, String str, IndexBrackets indexBrackets){
+    private int isContainsExpression (List<Expression> expressionList, String str){
         for (Expression ex : expressionList){
-            if (ex.getString().equals(str) && ex.getIndexBrackets().equals(indexBrackets)){
+            if (ex.getString().equals(str)){
+
                 return expressionList.indexOf(ex);
             }
         }
@@ -141,31 +142,38 @@ public class SyntaxTree {
             System.out.println(count + ".) " + expression + "\n");
 
             // создаём листья
-            for (int i = 0; i < expression.length(); ++i) {
-                if (!isMeta(expression.charAt(i))) {
-                    currentExpression.add(new Node(String.valueOf(expression.charAt(i)), IsList.LIST, i));
-                }
-            }
+
 
             // сделать метод проверки на принадлежность к экс потому что если скобки то всё ломается
             // ты должен понять а если не понял то вернись в прошлое и спроси
             //System.out.println("index - " + expression.indexOf('('));
-            if (expression.indexOf('(') >= 0){
-                    long numberBracketsEx = Arrays.stream(expression.split("")).filter(s -> s.equals("(")).count();
-                    System.out.println(numberBracketsEx +"AAAAAAAAAA");
-                    for (int c = 1; c <= numberBracketsEx; ++c) {
-                        IndexBrackets indexBracketsEx = findBrackets(mapCheckedBracketsEx, expression);
-                        int firstBracketEx = indexBracketsEx.getStart();
-                        int secondBracketEx = indexBracketsEx.getEnd();
-                        System.out.println("первая " + firstBracketEx + " вторая " + secondBracketEx);
-                        String tmp = expression.substring(firstBracketEx + 1, secondBracketEx);
-                        int search = isContainsExpression(wholeExpression, tmp, indexBrackets);
-                        if (search > 0){
-                            currentExpression.add(wholeExpression.get(search).getList());
-                        }
+            if (expression.indexOf('(') >= 0) {
+                long numberBracketsEx = Arrays.stream(expression.split("")).filter(s -> s.equals("(")).count();
+                System.out.println(numberBracketsEx + " AAAAAAAAAA");
+                for (int c = 1; c <= numberBracketsEx; ++c) {
+                    IndexBrackets indexBracketsEx = findBrackets(mapCheckedBracketsEx, expression);
+                    int firstBracketEx = indexBracketsEx.getStart();
+                    int secondBracketEx = indexBracketsEx.getEnd();
+                    System.out.println("первая " + firstBracketEx + " вторая " + secondBracketEx);
+                    String tmp = expression.substring(firstBracketEx + 1, secondBracketEx);
+                    int search = isContainsExpression(wholeExpression, tmp);
+                    System.out.println("Результат поиска - " + search + " " + tmp + " " + indexBracketsEx);
+                    if (search > 0) {
+                        currentExpression.add(wholeExpression.get(search).getList());
+                        wholeExpression.remove(search);
                     }
-                currentExpression.forEach(System.out::println);
                 }
+            }
+            else {
+                for (int i = 0; i < expression.length(); ++i) {
+                    if (expression.indexOf('(') >= 0) {
+                        break;
+                    }
+                    if (!isMeta(expression.charAt(i))) {
+                        currentExpression.add(new Node(String.valueOf(expression.charAt(i)), IsList.LIST, i));
+                    }
+                }
+            }
 
             // ищем пару aNode и * и создаём starNode
             for (int i = 0; i < expression.length(); ++i) {
@@ -188,6 +196,9 @@ public class SyntaxTree {
                 }
             }
 
+            System.out.println("Что-то перед катнодом ");
+            currentExpression.forEach(System.out::println);
+            printTree(currentExpression.get(0), -1);
             // ищем пару node и node и создаём catNode
             for (int i = 1; i < currentExpression.size(); ++i) {
                 if (abs(currentExpression.get(i).getId() - currentExpression.get(i - 1).getId()) == 1) {
@@ -200,6 +211,8 @@ public class SyntaxTree {
                     currentExpression.remove(currentExpression.get(i - 1));
                     catNode.setId(catNode.getLeftChild().getId());
                     currentExpression.add(catNode);
+                    System.out.println("Catnode");
+                    printTree(catNode, -1);
                     Collections.sort(currentExpression);
                     for (Node node : currentExpression) {
                         if (node.getId() > catNode.getId())
@@ -230,12 +243,18 @@ public class SyntaxTree {
             }
 
             //printTree(currentExpression.get(0), -1);
-            wholeExpression.add(new Expression(currentExpression.get(0), expression, indexBrackets));
+            System.out.println("Скобки" + indexBrackets);
+            System.out.println("ВСЕ Экспрессы");
+            if (currentExpression.size() != 0)
+                wholeExpression.add(new Expression(currentExpression.get(0), expression, indexBrackets));
+            System.out.println(wholeExpression);
             //printTree(wholeExpression.get(0), -1);
-            wholeExpression.forEach(node ->  printTree(node.getList(), -1));
+            //wholeExpression.forEach(node ->  printTree(node.getList(), -1));
         }
         expressions.forEach(System.out::println);
         System.out.println("Regex - " + regex);
+        wholeExpression.forEach(node ->  printTree(node.getList(), -1));
+        System.out.println("Размер - " + wholeExpression.size());
     }
 
     private void swap(Node node, Node node1) {

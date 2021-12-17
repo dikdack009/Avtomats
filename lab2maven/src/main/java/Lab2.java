@@ -1,7 +1,5 @@
 import java.util.*;
 
-import static java.lang.Math.abs;
-
 public class Lab2 {
     private static String regex;
     private static List<Node> syntaxTreeList;
