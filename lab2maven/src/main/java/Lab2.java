@@ -1,21 +1,18 @@
 import java.util.*;
 
 public class Lab2 {
-    private static String regex;
-    private static List<Node> syntaxTreeList;
 
     public static void main(String[] args){
         SyntaxTree syntaxTree = new SyntaxTree();
         Scanner scanner = new Scanner(System.in);
         System.out.print("Введите регулярное выражение или \"exit\" для выхода -> ");
         String scan = scanner.nextLine();
+        String regex;
         while (!scan.equals("exit")){
             regex = scan.trim();
             syntaxTree.setRegex(regex);
-            syntaxTreeList = new ArrayList<>();
-            syntaxTree.makeSyntaxTree();
             try {
-//                syntaxTree.makeSyntaxTree();
+                syntaxTree.makeSyntaxTree();
             }catch (RuntimeException exception){
                 System.out.println(exception.getMessage());
             }

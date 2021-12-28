@@ -16,3 +16,7 @@ class StarException extends RuntimeException{
     public StarException() {super(new Exceptions() +
             "Ошибка в использовании операции ‘замыкание Клини’: r…");}
 }
+class OrException extends RuntimeException {
+    public OrException() {super(new Exceptions() +
+                "Ошибка в использовании операции ‘или’: r1|r2");}
+}

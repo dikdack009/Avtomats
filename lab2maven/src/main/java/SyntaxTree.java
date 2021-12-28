@@ -9,25 +9,25 @@ import java.util.stream.Collectors;
 public class SyntaxTree {
 
     private String regex;
-    private List<Node> syntaxTree;
+    private Node syntaxTree;
 
     public SyntaxTree(String regex) {
         this.regex = regex;
     }
 
-    private IndexBrackets findBrackets(Map<Integer, Integer> mapCheckedBrackets, String regex) {
+    private IndexBrackets findBracketsForArray(Map<Integer, Integer> mapCheckedBrackets, List<Expression> currentExpression) {
         boolean startBrackets = false;
         int firstBracket = 0;
         int secondBracket = 0;
-        for (int i = 0; i < regex.length(); ++i) {
-            if (regex.charAt(i) == '(' && !startBrackets && !mapCheckedBrackets.containsKey(i)) {
+        for (int i = 0; i < currentExpression.size(); ++i) {
+            if (currentExpression.get(i).getString().equals("(") && !startBrackets && !mapCheckedBrackets.containsKey(i)) {
                 firstBracket = i;
                 startBrackets = true;
             }
-            else if (startBrackets && regex.charAt(i) == '(' && !mapCheckedBrackets.containsKey(i)){
+            else if (startBrackets && currentExpression.get(i).getString().equals("(") && !mapCheckedBrackets.containsKey(i)){
                 firstBracket = i;
             }
-            else if (regex.charAt(i) == ')' && startBrackets) {
+            else if (currentExpression.get(i).getString().equals(")") && startBrackets) {
                 secondBracket = i;
                 if (!mapCheckedBrackets.containsKey(firstBracket) && !mapCheckedBrackets.containsValue(secondBracket)) {
                     mapCheckedBrackets.put(firstBracket, secondBracket);
@@ -101,51 +101,18 @@ public class SyntaxTree {
         return firstBracketCount;
     }
 
+    protected void typicalCheckRegexForArray(List<Expression> currentExpression){
+        long firstBracketCount = currentExpression.stream().filter(s -> s.getString().equals("(")).count();
+        long secondBracketCount = currentExpression.stream().filter(s -> s.getString().equals(")")).count();
+        if (firstBracketCount != secondBracketCount) throw new BracketsException();
+    }
+
     private boolean isMeta(char i){
         return String.valueOf(i).equals("*") ||
                 String.valueOf(i).equals("?") ||
                 String.valueOf(i).equals("|") ||
                 String.valueOf(i).equals("(") ||
                 String.valueOf(i).equals(")");
-    }
-
-    protected List<Expression> configureHardLists(String expression, Map<String, Node> wholeExpression){
-        List <Expression> currentExpression = configureSimpleLists(expression);
-        boolean openBracket = false;
-        int startBracket = 0;
-        int endBracket = 0;
-        int numberOpenBracket = 0;
-        System.out.println("Зашли");
-        for (int i = 0; i < expression.length(); ++i){
-            if (expression.charAt(i) == '(' && !openBracket){
-                startBracket = i;
-                openBracket = true;
-                System.out.println("Нашли скобку (" + startBracket);
-            }
-            else if (expression.charAt(i) == '(' && openBracket){
-                numberOpenBracket++;
-            }
-            else if (expression.charAt(i) == ')' && numberOpenBracket == 0){
-                endBracket = i;
-                System.out.println("Нашли скобку )" + endBracket);
-                openBracket = false;
-                String microExpression = expression.substring(startBracket + 1, endBracket);
-                System.out.println(microExpression + " micro");
-                Node microCurrentExpression = wholeExpression.get(microExpression);
-                int number = endBracket - startBracket - 1;
-                while (number-- > 0){
-                    currentExpression.remove(startBracket);
-                }
-                expression = expression.substring(0, startBracket) + expression.substring(endBracket);
-                System.out.println(expression + " ex");
-                currentExpression.get(startBracket).setString(microCurrentExpression.getValue());
-                currentExpression.get(startBracket).setList(microCurrentExpression);
-            }
-            else if (expression.charAt(i) == ')' && numberOpenBracket != 0){
-                numberOpenBracket--;
-            }
-        }
-        return currentExpression;
     }
 
     protected List<Expression> configureSimpleLists(String expression){
@@ -166,7 +133,6 @@ public class SyntaxTree {
     protected void replaceToStarNode(List<Expression> currentExpression){
         int result = hasStarList(currentExpression);
         while (result >= 0){
-            //if (result == 0)
             Node leftChild = currentExpression.get(result - 1).getList();
             currentExpression.get(result - 1).setString("*");
             Node starNode = new Node("*");
@@ -179,8 +145,10 @@ public class SyntaxTree {
 
     protected int hasStarList(List<Expression> currentExpression){
         for (int i = 0; i < currentExpression.size(); ++i)
-            if (currentExpression.get(i).getString().equals("*") && currentExpression.get(i).getList() == null)
+            if (currentExpression.get(i).getString().equals("*") && currentExpression.get(i).getList() == null) {
+                if (i == 0) throw new StarException();
                 return i;
+            }
         return -1;
     }
 
@@ -211,6 +179,7 @@ public class SyntaxTree {
 
     protected void replaceToOrNode(List<Expression> currentExpression) {
         int result = hasOrList(currentExpression);
+        if (currentExpression.get(0).getString().equals("|")) throw new OrException();
         while (result >= 0){
             Node orNode = new Node("|");
             Node leftChild = currentExpression.get(result - 1).getList();
@@ -225,7 +194,6 @@ public class SyntaxTree {
         }
     }
 
-    // TODO: написать экспешены для всех методов обработки реджекса
     protected int hasOrList(List<Expression> currentExpression){
         for (int i = 1; i < currentExpression.size(); ++i){
             if (currentExpression.get(i).getString().equals("|")) {
@@ -239,41 +207,38 @@ public class SyntaxTree {
     }
 
     protected void makeSyntaxTree(){
-        long numberBrackets = typicalCheckRegex() + 2;      // TODO: проверить что прибавить
+        long numberBrackets = typicalCheckRegex() + 2;
         regex = "(" + regex + ")";
         System.out.println(regex);
 
         List<Expression> currentExpression;                             // текущее утверждение
-        Map<String, Node> wholeExpression = new TreeMap<>() {};           // весь regex
-        Map<Integer, Integer> mapCheckedBrackets = new TreeMap<>();    // Мара для проверки скобок, проверили мы их ли нет
-        List<String> expressions = new ArrayList<>();                   // Все утверждения в виде String
+        Map<Integer, Integer> mapCheckedBrackets;                       // Мара для проверки скобок, проверили мы их ли нет
 
+        currentExpression = configureSimpleLists(regex);
+        typicalCheckRegexForArray(currentExpression);
         for (int count = 1; count <= numberBrackets; ++count) {
-            currentExpression = new ArrayList<>();
-            IndexBrackets indexBrackets = findBrackets(mapCheckedBrackets, regex);
+            mapCheckedBrackets = new TreeMap<>();
+            IndexBrackets indexBrackets = findBracketsForArray(mapCheckedBrackets, currentExpression);
             if (indexBrackets.getStart() == indexBrackets.getEnd())
                 break;
             int firstBracket = indexBrackets.getStart();
             int secondBracket = indexBrackets.getEnd();
-            String expression = regex.substring(firstBracket + 1, secondBracket);
-            expressions.add(expression);
-            System.out.println(count + ".) " + expression + "\n");
+            List<Expression> microExpression = currentExpression.subList(firstBracket + 1, secondBracket);
+            List<Expression> tmp = new ArrayList<>(microExpression);
 
-            // Для начала разбиваем текущее утверждение на листья
-            //String bufferString = expression;
-            if(expression.contains("(")){
-                currentExpression = configureHardLists(expression, wholeExpression);
-            }
-            else currentExpression = configureSimpleLists(expression);
-            replaceToStarNode(currentExpression);
-            replaceToCatNode(currentExpression);
-            replaceToOrNode(currentExpression);
+            replaceToStarNode(tmp);
+            replaceToCatNode(tmp);
+            replaceToOrNode(tmp);
 
+            int result = secondBracket - firstBracket;
+            while (result-- > 0)
+                currentExpression.remove(firstBracket);
 
-            wholeExpression.put(expression,currentExpression.get(0).getList());
-
-            printTree(currentExpression.get(0).getList(), -1);
+            currentExpression.get(firstBracket).setList(tmp.get(0).getList());
+            currentExpression.get(firstBracket).setString(tmp.get(0).getString());
+            syntaxTree = currentExpression.get(0).getList();
         }
+        printTree(syntaxTree, -1);
     }
 
     protected void printTree(Node tree, int lines){
