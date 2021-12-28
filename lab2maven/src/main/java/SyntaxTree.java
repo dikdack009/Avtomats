@@ -2,8 +2,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.*;
-
-import static java.lang.Math.abs;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +17,6 @@ public class SyntaxTree {
 
     private IndexBrackets findBrackets(Map<Integer, Integer> mapCheckedBrackets, String regex) {
         boolean startBrackets = false;
-        boolean endBrackets = false;
         int firstBracket = 0;
         int secondBracket = 0;
         for (int i = 0; i < regex.length(); ++i) {
@@ -32,7 +30,6 @@ public class SyntaxTree {
             else if (regex.charAt(i) == ')' && startBrackets) {
                 secondBracket = i;
                 if (!mapCheckedBrackets.containsKey(firstBracket) && !mapCheckedBrackets.containsValue(secondBracket)) {
-                    System.out.println("первая скобка - " + firstBracket +  " вторая - " + secondBracket);
                     mapCheckedBrackets.put(firstBracket, secondBracket);
                     break;
                 }
@@ -43,13 +40,13 @@ public class SyntaxTree {
 
     protected void removeFigureBrackets(){
         boolean startBrackets = false;
-        boolean endBrackets = false;
         int firstBracket = 0;
         int secondBracket;
         int figureNumber;
         String figureBefore;
-        long firstFigureCount = Arrays.stream(regex.split("")).filter(s -> s.equals("{")).count();
-        long secondFigureCount = Arrays.stream(regex.split("")).filter(s -> s.equals("}")).count();
+        List<Character> charList =  regex.chars().mapToObj(c -> (char) c).collect(Collectors.toList());
+        long firstFigureCount = charList.stream().filter(s -> s.equals('{')).count();
+        long secondFigureCount = charList.stream().filter(s -> s.equals('}')).count();
         if (firstFigureCount != secondFigureCount) throw new FigureBracketsException();
         for (int i = 0; i < regex.length(); ++i){
             if (regex.charAt(i) == '{'){
@@ -60,7 +57,6 @@ public class SyntaxTree {
             if (startBrackets && (regex.charAt(i) == '{' || firstBracket == 0)) throw new FigureBracketsException();
             else if (regex.charAt(i) == '}' && startBrackets){
                 secondBracket = i;
-                endBrackets = true;
                 if (regex.charAt(firstBracket - 1) == '}') throw new FigureBracketsException();
                 try {
                     figureNumber = Integer.parseInt(regex.substring(firstBracket + 1, secondBracket));
@@ -68,7 +64,7 @@ public class SyntaxTree {
                     throw new FigureBracketsException();
                 }
                 if (figureNumber <= 0) throw new FigureBracketsException();
-                regex = regex.replace(regex.substring(firstBracket, secondBracket + 1), "");
+                regex = regex.substring(0, firstBracket) + regex.substring(secondBracket + 1);
                 if (regex.charAt(firstBracket - 1) == ')'){
                     int f2 = firstBracket - 1;
                     int f1 = 0;
@@ -76,30 +72,36 @@ public class SyntaxTree {
                         if (regex.charAt(k) == '(') f1 = k;
                     }
                     figureBefore = regex.substring(f1, f2 + 1);
+                    regex = regex.substring(0, f1) + regex.substring(f2 + 1);
                 }
-                else figureBefore = String.valueOf(regex.charAt(firstBracket - 1));
-                regex = regex.replace(figureBefore, "");
+                else {
+                    figureBefore = String.valueOf(regex.charAt(firstBracket - 1));
+                    regex = regex.substring(0, firstBracket - 1) + regex.substring(firstBracket);
+                }
                 regex = new StringBuilder(regex).insert(firstBracket - figureBefore.length(),"(" + figureBefore.repeat(figureNumber) + ")").toString();
+                startBrackets = false;
             }
         }
-        if (startBrackets != endBrackets) throw new FigureBracketsException();
+        //if (startBrackets != endBrackets) throw new FigureBracketsException();
     }
 
     protected long typicalCheckRegex(){
-        long firstBracketCount = Arrays.stream(regex.split("")).filter(s -> s.equals("(")).count();
-        long secondBracketCount = Arrays.stream(regex.split("")).filter(s -> s.equals(")")).count();
-        if (firstBracketCount != secondBracketCount) throw new BracketsException();
+        regex = regex.replaceAll("\\.\\.\\.", "*");
         try{
             removeFigureBrackets();
         }
         catch (Exception ex) {
             throw new FigureBracketsException();
         }
-        regex = regex.replaceAll("\\.\\.\\.", "*");
+        List<Character> charList =  regex.chars().mapToObj(c -> (char) c).collect(Collectors.toList());
+        long firstBracketCount = charList.stream().filter(s -> s.equals('(')).count();
+        long secondBracketCount = charList.stream().filter(s -> s.equals(')')).count();
+        if (firstBracketCount != secondBracketCount) throw new BracketsException();
+
         return firstBracketCount;
     }
 
-    private boolean isMeta( char i){
+    private boolean isMeta(char i){
         return String.valueOf(i).equals("*") ||
                 String.valueOf(i).equals("?") ||
                 String.valueOf(i).equals("|") ||
@@ -107,160 +109,167 @@ public class SyntaxTree {
                 String.valueOf(i).equals(")");
     }
 
-    private int isContainsExpression (List<Expression> expressionList, String str){
-        for (Expression ex : expressionList){
-            if (ex.getString().equals(str)){
+    protected List<Expression> configureHardLists(String expression, Map<String, Node> wholeExpression){
+        Map<Integer, Integer> mapCheckedBracketsEx = new TreeMap<>();
+        System.out.println();
+        long numberBrackets = typicalCheckRegex();
+        List <Expression> currentExpression = configureSimpleLists(expression);
+        int count = 1;
+        System.out.println("Скобок " + numberBrackets);
+        while (count <= numberBrackets){
+            IndexBrackets indexBrackets = findBrackets(mapCheckedBracketsEx, expression);
+            if (indexBrackets.getStart() == indexBrackets.getEnd())
+                break;
+            int firstBracket = indexBrackets.getStart();
+            int secondBracket = indexBrackets.getEnd();
+            String microExpression = expression.substring(firstBracket + 1, secondBracket);
+            //System.out.println(" Скобки " + firstBracket +  " " + secondBracket);
+            if (wholeExpression.containsKey(microExpression)) {
+                int number = secondBracket - firstBracket;
+                //System.out.println(number + " numb");
+                while (number > 0){
+                    //System.out.println(currentExpression.get(firstBracket) + " f");
+                    currentExpression.remove(firstBracket);
+                    number--;
+                }
+                expression = expression.substring(0, firstBracket).concat(expression.substring(secondBracket));
+                System.out.println("Ex = " + expression);
+                Node microNode = wholeExpression.get(microExpression);
+                currentExpression.get(firstBracket).setList(microNode);
+                currentExpression.get(firstBracket).setString(microNode.getValue());
+            }
+            currentExpression.forEach(System.out::println);
+            count++;
+        }
+        return currentExpression;
+    }
 
-                return expressionList.indexOf(ex);
+    protected List<Expression> configureSimpleLists(String expression){
+        List<Expression> currentExpression = new ArrayList<>();
+        for (int i = 0; i < expression.length(); ++i){
+            String subExpression = expression.substring(i, i + 1);
+            if (!isMeta(expression.charAt(i))){
+                Node list = new Node(String.valueOf(expression.charAt(i)));
+                currentExpression.add(new Expression(list, subExpression));
+            }
+            else {
+                currentExpression.add(new Expression(null, subExpression));
+            }
+        }
+        return currentExpression;
+    }
+
+    protected void replaceToStarNode(List<Expression> currentExpression){
+        int result = hasStarList(currentExpression);
+        while (result >= 0){
+            //if (result == 0)
+            Node leftChild = currentExpression.get(result - 1).getList();
+            currentExpression.get(result - 1).setString("*");
+            Node starNode = new Node("*");
+            starNode.setLeftChild(leftChild);
+            currentExpression.get(result - 1).setList(starNode);
+            currentExpression.remove(result);
+            result = hasStarList(currentExpression);
+        }
+    }
+
+    protected int hasStarList(List<Expression> currentExpression){
+        for (int i = 0; i < currentExpression.size(); ++i)
+            if (currentExpression.get(i).getString().equals("*") && currentExpression.get(i).getList() == null)
+                return i;
+        return -1;
+    }
+
+    protected void replaceToCatNode(List<Expression> currentExpression){
+        int result = hasCatList(currentExpression);
+        while (result >= 0){
+            Node catNode = new Node(".");
+            Node leftChild = currentExpression.get(result - 1).getList();
+            Node rightChild = currentExpression.get(result).getList();
+            catNode.setLeftChild(leftChild);
+            catNode.setRightChild(rightChild);
+            currentExpression.remove(result);
+            currentExpression.get(result - 1).setString(".");
+            currentExpression.get(result - 1).setList(catNode);
+            result = hasCatList(currentExpression);
+        }
+    }
+
+    protected int hasCatList(List<Expression> currentExpression){
+        for (int i = 1; i < currentExpression.size(); ++i){
+            boolean leftHasList = currentExpression.get(i-1).getList() != null;
+            boolean rightHasList = currentExpression.get(i).getList() != null;
+            if (leftHasList && rightHasList)
+                return i;
+        }
+        return -1;
+    }
+
+    protected void replaceToOrNode(List<Expression> currentExpression) {
+        int result = hasOrList(currentExpression);
+        while (result >= 0){
+            Node orNode = new Node("|");
+            Node leftChild = currentExpression.get(result - 1).getList();
+            Node rightChild = currentExpression.get(result + 1).getList();
+            orNode.setLeftChild(leftChild);
+            orNode.setRightChild(rightChild);
+            currentExpression.get(result - 1).setString("|");
+            currentExpression.get(result - 1).setList(orNode);
+            currentExpression.remove(result);
+            currentExpression.remove(result);
+            result = hasOrList(currentExpression);
+        }
+    }
+
+    // TODO: написать экспешены для всех методов обработки реджекса
+    protected int hasOrList(List<Expression> currentExpression){
+        for (int i = 1; i < currentExpression.size(); ++i){
+            if (currentExpression.get(i).getString().equals("|")) {
+                boolean leftHasList = currentExpression.get(i - 1).getList() != null;
+                boolean rightHasList = currentExpression.get(i + 1).getList() != null;
+                if (leftHasList && rightHasList)
+                    return i;
             }
         }
         return -1;
     }
 
     protected void makeSyntaxTree(){
-        long numberBrackets = typicalCheckRegex() + 2;
+        long numberBrackets = typicalCheckRegex() + 2;      // TODO: проверить что прибавить
         regex = "(" + regex + ")";
         System.out.println(regex);
 
-        List<Node> currentExpression;
-        List<Expression> wholeExpression = new ArrayList<>();
-        Map <Integer, Integer> mapCheckedBrackets = new TreeMap<>();
-        Map <Integer, Integer> mapCheckedBracketsEx = new TreeMap<>();
-        List<String> expressions = new ArrayList<>();
+        List<Expression> currentExpression;                             // текущее утверждение
+        Map<String, Node> wholeExpression = new TreeMap<>() {};           // весь regex
+        Map<Integer, Integer> mapCheckedBrackets = new TreeMap<>();    // Мара для проверки скобок, проверили мы их ли нет
+        List<String> expressions = new ArrayList<>();                   // Все утверждения в виде String
 
         for (int count = 1; count <= numberBrackets; ++count) {
             currentExpression = new ArrayList<>();
             IndexBrackets indexBrackets = findBrackets(mapCheckedBrackets, regex);
-            if (indexBrackets.getStart() == indexBrackets.getEnd() && indexBrackets.getStart() == 0)
+            if (indexBrackets.getStart() == indexBrackets.getEnd())
                 break;
             int firstBracket = indexBrackets.getStart();
             int secondBracket = indexBrackets.getEnd();
-            //System.out.println("Нашли скобки");
-//            System.out.println(mapCheckedBrackets);
             String expression = regex.substring(firstBracket + 1, secondBracket);
             expressions.add(expression);
             System.out.println(count + ".) " + expression + "\n");
 
-            // создаём листья
-
-
-            // сделать метод проверки на принадлежность к экс потому что если скобки то всё ломается
-            // ты должен понять а если не понял то вернись в прошлое и спроси
-            //System.out.println("index - " + expression.indexOf('('));
-            if (expression.indexOf('(') >= 0) {
-                long numberBracketsEx = Arrays.stream(expression.split("")).filter(s -> s.equals("(")).count();
-                System.out.println(numberBracketsEx + " AAAAAAAAAA");
-                for (int c = 1; c <= numberBracketsEx; ++c) {
-                    IndexBrackets indexBracketsEx = findBrackets(mapCheckedBracketsEx, expression);
-                    int firstBracketEx = indexBracketsEx.getStart();
-                    int secondBracketEx = indexBracketsEx.getEnd();
-                    System.out.println("первая " + firstBracketEx + " вторая " + secondBracketEx);
-                    String tmp = expression.substring(firstBracketEx + 1, secondBracketEx);
-                    int search = isContainsExpression(wholeExpression, tmp);
-                    System.out.println("Результат поиска - " + search + " " + tmp + " " + indexBracketsEx);
-                    if (search > 0) {
-                        currentExpression.add(wholeExpression.get(search).getList());
-                        wholeExpression.remove(search);
-                    }
-                }
+            // Для начала разбиваем текущее утверждение на листья
+            //String bufferString = expression;
+            if(expression.contains("(")){
+                currentExpression = configureHardLists(expression, wholeExpression);
             }
-            else {
-                for (int i = 0; i < expression.length(); ++i) {
-                    if (expression.indexOf('(') >= 0) {
-                        break;
-                    }
-                    if (!isMeta(expression.charAt(i))) {
-                        currentExpression.add(new Node(String.valueOf(expression.charAt(i)), IsList.LIST, i));
-                    }
-                }
-            }
+            else currentExpression = configureSimpleLists(expression);
+            replaceToStarNode(currentExpression);
+            replaceToCatNode(currentExpression);
+            replaceToOrNode(currentExpression);
 
-            // ищем пару aNode и * и создаём starNode
-            for (int i = 0; i < expression.length(); ++i) {
-                if (expression.charAt(i) == '*') {
-                    if (i == 0) throw new StarException();
-                    Node starNode = new Node("*", IsList.NODE, i - 1);
-                    for (Node node : currentExpression)
-                        if (node.getId() == i - 1) {
-                            starNode.setLeftChild(node);
-                            currentExpression.remove(node);
-                            break;
-                        }
-                    starNode.setId(starNode.getLeftChild().getId());
-                    currentExpression.add(starNode);
-                    Collections.sort(currentExpression);
-                    for (Node node : currentExpression) {
-                        if (node.getId() > starNode.getId())
-                            node.setId(node.getId() - 1);
-                    }
-                }
-            }
 
-            System.out.println("Что-то перед катнодом ");
-            currentExpression.forEach(System.out::println);
-            printTree(currentExpression.get(0), -1);
-            // ищем пару node и node и создаём catNode
-            for (int i = 1; i < currentExpression.size(); ++i) {
-                if (abs(currentExpression.get(i).getId() - currentExpression.get(i - 1).getId()) == 1) {
-                    if (currentExpression.get(i - 1).getId() - currentExpression.get(i).getId() == 1)
-                        swap(currentExpression.get(i - 1), currentExpression.get(i));
-                    Node catNode = new Node(".", IsList.NODE, i);
-                    catNode.setLeftChild(currentExpression.get(i - 1));
-                    catNode.setRightChild(currentExpression.get(i));
-                    currentExpression.remove(currentExpression.get(i - 1));
-                    currentExpression.remove(currentExpression.get(i - 1));
-                    catNode.setId(catNode.getLeftChild().getId());
-                    currentExpression.add(catNode);
-                    System.out.println("Catnode");
-                    printTree(catNode, -1);
-                    Collections.sort(currentExpression);
-                    for (Node node : currentExpression) {
-                        if (node.getId() > catNode.getId())
-                            node.setId(abs(node.getId() - 1));
-                    }
-                    i = 0;
-                }
-            }
+            wholeExpression.put(expression,currentExpression.get(0).getList());
 
-            // ищем триплет и создаём orNode
-            for (int i = 1; i < currentExpression.size(); ++i) {
-                if (currentExpression.get(i).getId() - currentExpression.get(i - 1).getId() == 2 &&
-                        expression.charAt(currentExpression.get(i - 1).getId() + 1) == '|') {
-                    System.out.println("Нашли или!");
-                    Node orNode = new Node("|", IsList.NODE, i);
-                    orNode.setLeftChild(currentExpression.get(i - 1));
-                    orNode.setRightChild(currentExpression.get(i));
-                    currentExpression.remove(currentExpression.get(i - 1));
-                    currentExpression.remove(currentExpression.get(i - 1));
-                    orNode.setId(orNode.getLeftChild().getId());
-                    currentExpression.add(i - 1, orNode);
-                    for (Node node : currentExpression) {
-                        if (node.getId() > orNode.getId())
-                            node.setId(abs(orNode.getLeftChild().getId() - orNode.getRightChild().getId()));
-                    }
-                    i = 0;
-                }
-            }
-
-            //printTree(currentExpression.get(0), -1);
-            System.out.println("Скобки" + indexBrackets);
-            System.out.println("ВСЕ Экспрессы");
-            if (currentExpression.size() != 0)
-                wholeExpression.add(new Expression(currentExpression.get(0), expression, indexBrackets));
-            System.out.println(wholeExpression);
-            //printTree(wholeExpression.get(0), -1);
-            //wholeExpression.forEach(node ->  printTree(node.getList(), -1));
+            printTree(currentExpression.get(0).getList(), -1);
         }
-        expressions.forEach(System.out::println);
-        System.out.println("Regex - " + regex);
-        wholeExpression.forEach(node ->  printTree(node.getList(), -1));
-        System.out.println("Размер - " + wholeExpression.size());
-    }
-
-    private void swap(Node node, Node node1) {
-        int tmp = node.getId();
-        node.setId(node1.getId());
-        node1.setId(tmp);
     }
 
     protected void printTree(Node tree, int lines){
