@@ -110,36 +110,40 @@ public class SyntaxTree {
     }
 
     protected List<Expression> configureHardLists(String expression, Map<String, Node> wholeExpression){
-        Map<Integer, Integer> mapCheckedBracketsEx = new TreeMap<>();
-        System.out.println();
-        long numberBrackets = typicalCheckRegex();
         List <Expression> currentExpression = configureSimpleLists(expression);
-        int count = 1;
-        System.out.println("Скобок " + numberBrackets);
-        while (count <= numberBrackets){
-            IndexBrackets indexBrackets = findBrackets(mapCheckedBracketsEx, expression);
-            if (indexBrackets.getStart() == indexBrackets.getEnd())
-                break;
-            int firstBracket = indexBrackets.getStart();
-            int secondBracket = indexBrackets.getEnd();
-            String microExpression = expression.substring(firstBracket + 1, secondBracket);
-            //System.out.println(" Скобки " + firstBracket +  " " + secondBracket);
-            if (wholeExpression.containsKey(microExpression)) {
-                int number = secondBracket - firstBracket;
-                //System.out.println(number + " numb");
-                while (number > 0){
-                    //System.out.println(currentExpression.get(firstBracket) + " f");
-                    currentExpression.remove(firstBracket);
-                    number--;
-                }
-                expression = expression.substring(0, firstBracket).concat(expression.substring(secondBracket));
-                System.out.println("Ex = " + expression);
-                Node microNode = wholeExpression.get(microExpression);
-                currentExpression.get(firstBracket).setList(microNode);
-                currentExpression.get(firstBracket).setString(microNode.getValue());
+        boolean openBracket = false;
+        int startBracket = 0;
+        int endBracket = 0;
+        int numberOpenBracket = 0;
+        System.out.println("Зашли");
+        for (int i = 0; i < expression.length(); ++i){
+            if (expression.charAt(i) == '(' && !openBracket){
+                startBracket = i;
+                openBracket = true;
+                System.out.println("Нашли скобку (" + startBracket);
             }
-            currentExpression.forEach(System.out::println);
-            count++;
+            else if (expression.charAt(i) == '(' && openBracket){
+                numberOpenBracket++;
+            }
+            else if (expression.charAt(i) == ')' && numberOpenBracket == 0){
+                endBracket = i;
+                System.out.println("Нашли скобку )" + endBracket);
+                openBracket = false;
+                String microExpression = expression.substring(startBracket + 1, endBracket);
+                System.out.println(microExpression + " micro");
+                Node microCurrentExpression = wholeExpression.get(microExpression);
+                int number = endBracket - startBracket - 1;
+                while (number-- > 0){
+                    currentExpression.remove(startBracket);
+                }
+                expression = expression.substring(0, startBracket) + expression.substring(endBracket);
+                System.out.println(expression + " ex");
+                currentExpression.get(startBracket).setString(microCurrentExpression.getValue());
+                currentExpression.get(startBracket).setList(microCurrentExpression);
+            }
+            else if (expression.charAt(i) == ')' && numberOpenBracket != 0){
+                numberOpenBracket--;
+            }
         }
         return currentExpression;
     }
