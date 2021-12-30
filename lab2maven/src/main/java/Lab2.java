@@ -11,8 +11,9 @@ public class Lab2 {
         while (!scan.equals("exit")){
             regex = scan.trim();
             syntaxTree.setRegex(regex);
+            syntaxTree.makeSyntaxTree();
             try {
-                syntaxTree.makeSyntaxTree();
+//                syntaxTree.makeSyntaxTree();
             }catch (RuntimeException exception){
                 System.out.println(exception.getMessage());
             }
