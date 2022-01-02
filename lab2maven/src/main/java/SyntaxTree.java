@@ -1,5 +1,6 @@
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.w3c.dom.ls.LSOutput;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,6 +12,7 @@ public class SyntaxTree {
     private String regex;
     private Node syntaxTree;
     private Map <String, String> captureDictionary;
+    private Set<Character> alphabet;
 
     public SyntaxTree(String regex) {
         this.regex = regex;
@@ -90,11 +92,14 @@ public class SyntaxTree {
         if (regex.contains("?")){
             String figureBefore;
             for (int i = 0; i < regex.length(); ++i){
+                System.out.println(regex);
                 if (regex.charAt(i) == '?'){
+                    System.out.println("нашли вопрос");
                     char charBefore = regex.charAt(i - 1);
                     System.out.println(charBefore);
                     //if (isMeta(charBefore)) throw new QuestionException();
                     if (charBefore == ')'){
+                        System.out.println("dfgfd");
                         int f2 = i - 1;
                         int f1 = 0;
                         for (int k = f2; k >= 0; --k){
@@ -110,6 +115,7 @@ public class SyntaxTree {
                     //System.out.println(regex);
 
                     regex = new StringBuilder(regex).insert(i - figureBefore.length(),"(" + figureBefore + "|^)").toString();
+                    //System.out.println(regex);
                     break;
                 }
             }
@@ -183,6 +189,7 @@ public class SyntaxTree {
 
     protected List<Expression> configureSimpleLists(String expression){
         List<Expression> currentExpression = new ArrayList<>();
+        alphabet = new TreeSet<>();
         for (int i = 0; i < expression.length(); ++i){
             String subExpression = expression.substring(i, i + 1);
             boolean screeningMeta = i >= 1 && expression.charAt(i) == '%' && expression.charAt(i + 2) == '%';
@@ -190,10 +197,12 @@ public class SyntaxTree {
                 Node list = new Node(String.valueOf(expression.charAt(i + 1)));
                 currentExpression.add(new Expression(list, subExpression, Screening.Yes));
                 expression = expression.substring(0, i) + expression.charAt(i + 1) + expression.substring(i + 3);
+                alphabet.add(expression.charAt(i + 1));
             }
             else if (!isMeta(expression.charAt(i))){
                 Node list = new Node(String.valueOf(expression.charAt(i)));
                 currentExpression.add(new Expression(list, subExpression, Screening.Yes));
+                alphabet.add(expression.charAt(i));
             }
             else {
                 currentExpression.add(new Expression(null, subExpression, Screening.No));
@@ -269,6 +278,7 @@ public class SyntaxTree {
     protected int hasOrList(List<Expression> currentExpression){
         for (int i = 1; i < currentExpression.size(); ++i){
             if (currentExpression.get(i).getString().equals("|")) {
+                //if (isMeta(currentExpression.get(i - 1).getString().charAt(0))) throw new OrException();
                 boolean leftHasList = currentExpression.get(i - 1).getList() != null;
                 boolean rightHasList = currentExpression.get(i + 1).getList() != null;
                 if (leftHasList && rightHasList)
@@ -279,6 +289,7 @@ public class SyntaxTree {
     }
 
     protected void makeSyntaxTree(){
+        System.out.println(regex);
         long numberBrackets = typicalCheckRegex() + 2;
         regex = "((" + regex + ")$)";
         System.out.println(regex);

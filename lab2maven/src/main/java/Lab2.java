@@ -11,12 +11,25 @@ public class Lab2 {
         while (!scan.equals("exit")){
             regex = scan.trim();
             syntaxTree.setRegex(regex);
-            syntaxTree.makeSyntaxTree();
             try {
-//                syntaxTree.makeSyntaxTree();
+                syntaxTree.makeSyntaxTree();
             }catch (RuntimeException exception){
                 System.out.println(exception.getMessage());
             }
+            DFA dfa = new DFA(syntaxTree.getSyntaxTree(), syntaxTree.getAlphabet());
+            //dfa.makeDFA();
+            dfa.goNode(syntaxTree.getSyntaxTree());
+
+
+            System.out.println(dfa);
+
+            for (State state: dfa.getAllStatesList()) {
+                System.out.println(state.getStateID());
+                state.printTransitions();
+                System.out.println();
+            }
+
+
             System.out.print("Введите новое регулярное выражение или \"exit\" для выхода -> ");
             scan = scanner.nextLine();
         }
