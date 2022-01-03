@@ -208,6 +208,7 @@ public class SyntaxTree {
                 currentExpression.add(new Expression(null, subExpression, Screening.No));
             }
         }
+//        alphabet.remove('$');
         return currentExpression;
     }
 

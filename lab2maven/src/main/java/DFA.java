@@ -14,6 +14,7 @@ public class DFA {
     private State currentState;
     private List<State> allStatesList;
     private Set<Character> alphabet;
+    private Set<State> acceptStates;
 
     public DFA(Node root, Set<Character> alphabet) {
         this.alphabet = alphabet;
@@ -21,6 +22,7 @@ public class DFA {
         followPosDict = new HashMap<>();
         configureFollowPos(root);
         allStatesList = new ArrayList<>();
+        acceptStates = new HashSet<>();
     }
 
     public void goNode(Node node){
@@ -38,7 +40,7 @@ public class DFA {
         return switch (expression.getValue()) {
             case "." -> configureNullable(expression.getLeftChild()) && configureNullable(expression.getRightChild());
             case "|" -> configureNullable(expression.getLeftChild()) || configureNullable(expression.getRightChild());
-            case "*" -> configureNullable(expression.getLeftChild());
+            case "..." -> true;
             default -> expression.getValue().equals("^");
         };
     }
@@ -61,7 +63,7 @@ public class DFA {
                 configureFirstPos(expression.getLeftChild(), firstPosSet);
                 configureFirstPos(expression.getRightChild(), firstPosSet);
                 break;
-            case "*":
+            case "...":
                 configureFirstPos(expression.getLeftChild(), firstPosSet);
                 break;
             default:
@@ -90,7 +92,7 @@ public class DFA {
                 configureLastPos(expression.getLeftChild(), lastPosSet);
                 configureLastPos(expression.getRightChild(), lastPosSet);
                 break;
-            case "*":
+            case "...":
                 configureLastPos(expression.getLeftChild(), lastPosSet);
                 break;
             default:
@@ -117,7 +119,8 @@ public class DFA {
                 }
                 configureFollowPos(expression.getRightChild());
             }
-            case "*" -> {
+            case "..." -> {
+                // ИСПРАВЛЕНО было case "*"
                 Set<Node> lastPosSet = new HashSet<>(configureLastPos(expression.getLeftChild(), null));
                 Set<Node> firstPosSet = new HashSet<>(configureFirstPos(expression.getLeftChild(), null));
                 for (Node node : lastPosSet) {
@@ -135,17 +138,20 @@ public class DFA {
     protected void makeDFA(){
         Set<Integer> unmarkedID = new HashSet<>();
         Integer lastID = 0;
-
         unmarkedID.add(lastID);
         State state = new State(lastID, configureFirstPos(root, null));
         allStatesList.add(state);
+        startState = state;
+        currentState = state;
         while (!unmarkedID.isEmpty()){
             List<Integer> list = new ArrayList<>(unmarkedID);
             Integer currentUnmarked = list.get(0);
             unmarkedID.remove(currentUnmarked);
             System.out.println(alphabet);
+            alphabet.remove('$');
+
             for(char symbol : alphabet){
-                State newState = new State(lastID + 1, configureNodeUnion(state, symbol));
+                State newState = new State(lastID + 1, configureNodeUnion(allStatesList.get(currentUnmarked), symbol));
                 if (!allStatesList.contains(newState)){
                     ++lastID;
                     unmarkedID.add(lastID);
@@ -155,6 +161,13 @@ public class DFA {
                     newState = allStatesList.get(allStatesList.indexOf(newState));
                 }
                 allStatesList.get(currentUnmarked).appendNewTransition(String.valueOf(symbol), newState);
+            }
+        }
+        for (State st: allStatesList) {
+            for (Node node: st.getStatePositions()) {
+                if (node.getValue().equals("$")) {
+                    acceptStates.add(st);
+                }
             }
         }
     }

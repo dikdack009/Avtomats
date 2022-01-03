@@ -17,7 +17,7 @@ public class Lab2 {
                 System.out.println(exception.getMessage());
             }
             DFA dfa = new DFA(syntaxTree.getSyntaxTree(), syntaxTree.getAlphabet());
-            //dfa.makeDFA();
+            dfa.makeDFA();
             dfa.goNode(syntaxTree.getSyntaxTree());
 
 
@@ -29,6 +29,12 @@ public class Lab2 {
                 System.out.println();
             }
 
+            System.out.println();
+            System.out.println(dfa.getAcceptStates());
+            System.out.println();
+            for (Node key: dfa.getFollowPosDict().keySet()) {
+                System.out.println("Key " + key.getValue() + " " + dfa.getFollowPosDict().get(key));
+            }
 
             System.out.print("Введите новое регулярное выражение или \"exit\" для выхода -> ");
             scan = scanner.nextLine();
