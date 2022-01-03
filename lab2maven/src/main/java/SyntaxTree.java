@@ -1,6 +1,5 @@
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.w3c.dom.ls.LSOutput;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,7 +46,7 @@ public class SyntaxTree {
         int secondBracket;
         int figureNumber;
         String figureBefore;
-        List<Character> charList =  regex.chars().mapToObj(c -> (char) c).collect(Collectors.toList());
+        List<Character> charList = regex.chars().mapToObj(c -> (char) c).toList();
         long firstFigureCount = charList.stream().filter(s -> s.equals('{')).count();
         long secondFigureCount = charList.stream().filter(s -> s.equals('}')).count();
         if (firstFigureCount != secondFigureCount) throw new FigureBracketsException();
@@ -85,7 +84,6 @@ public class SyntaxTree {
                 startBrackets = false;
             }
         }
-        removeQuestion();
     }
 
     protected void removeQuestion(){
@@ -97,7 +95,7 @@ public class SyntaxTree {
                     System.out.println("нашли вопрос");
                     char charBefore = regex.charAt(i - 1);
                     System.out.println(charBefore);
-                    //if (isMeta(charBefore)) throw new QuestionException();
+                    if (isMeta(charBefore)) throw new QuestionException();
                     if (charBefore == ')'){
                         System.out.println("dfgfd");
                         int f2 = i - 1;
@@ -112,10 +110,7 @@ public class SyntaxTree {
                         figureBefore = String.valueOf(regex.charAt(i - 1));
                         regex = regex.substring(0, i - 1) + regex.substring(i + 1);
                     }
-                    //System.out.println(regex);
-
                     regex = new StringBuilder(regex).insert(i - figureBefore.length(),"(" + figureBefore + "|^)").toString();
-                    //System.out.println(regex);
                     break;
                 }
             }
@@ -130,7 +125,13 @@ public class SyntaxTree {
         catch (Exception ex) {
             throw new FigureBracketsException();
         }
-        List<Character> charList =  regex.chars().mapToObj(c -> (char) c).collect(Collectors.toList());
+        try {
+            removeQuestion();
+        }
+        catch (Exception ex) {
+            throw new QuestionException();
+        }
+        List<Character> charList = regex.chars().mapToObj(c -> (char) c).toList();
         long firstBracketCount = charList.stream().filter(s -> s.equals('(')).count();
         long secondBracketCount = charList.stream().filter(s -> s.equals(')')).count();
         if (firstBracketCount != secondBracketCount) throw new BracketsException();
@@ -172,7 +173,6 @@ public class SyntaxTree {
 
     }
 
-    //TODO: try для вопроса
     protected void typicalCheckRegexForArray(List<Expression> currentExpression){
         long firstBracketCount = currentExpression.stream().filter(s -> s.getString().equals("(")).count();
         long secondBracketCount = currentExpression.stream().filter(s -> s.getString().equals(")")).count();
@@ -182,9 +182,7 @@ public class SyntaxTree {
     private boolean isMeta(char i){
         return String.valueOf(i).equals("*") ||
                 String.valueOf(i).equals("?") ||
-                String.valueOf(i).equals("|") ||
-                String.valueOf(i).equals("(") ||
-                String.valueOf(i).equals(")");
+                String.valueOf(i).equals("|");
     }
 
     protected List<Expression> configureSimpleLists(String expression){
@@ -199,7 +197,7 @@ public class SyntaxTree {
                 expression = expression.substring(0, i) + expression.charAt(i + 1) + expression.substring(i + 3);
                 alphabet.add(expression.charAt(i + 1));
             }
-            else if (!isMeta(expression.charAt(i))){
+            else if (!isMeta(expression.charAt(i)) && expression.charAt(i) != ')' && expression.charAt(i) != '('){
                 Node list = new Node(String.valueOf(expression.charAt(i)));
                 currentExpression.add(new Expression(list, subExpression, Screening.Yes));
                 alphabet.add(expression.charAt(i));
@@ -227,7 +225,7 @@ public class SyntaxTree {
     protected int hasStarList(List<Expression> currentExpression){
         for (int i = 0; i < currentExpression.size(); ++i)
             if (currentExpression.get(i).getString().equals("*") && currentExpression.get(i).getList() == null) {
-                if (i == 0) throw new StarException();
+                if (i == 0 || currentExpression.get(i - 1).getString().equals("|") && currentExpression.get(i - 1).getList() == null) throw new StarException();
                 return i;
             }
         return -1;
@@ -260,7 +258,7 @@ public class SyntaxTree {
 
     protected void replaceToOrNode(List<Expression> currentExpression) {
         int result = hasOrList(currentExpression);
-        //if (currentExpression.get(0).getString().equals("|")) throw new OrException(); // TODO: do normal exception
+        if (currentExpression.get(0).getString().equals("|")) throw new OrException(); // TODO: do normal exception
         while (result >= 0){
             Node orNode = new Node("|");
             Node leftChild = currentExpression.get(result - 1).getList();
@@ -278,7 +276,9 @@ public class SyntaxTree {
     protected int hasOrList(List<Expression> currentExpression){
         for (int i = 1; i < currentExpression.size(); ++i){
             if (currentExpression.get(i).getString().equals("|")) {
-                //if (isMeta(currentExpression.get(i - 1).getString().charAt(0))) throw new OrException();
+                char ch_before = currentExpression.get(i - 1).getString().charAt(0);
+                char ch_after = currentExpression.get(i + 1).getString().charAt(0);
+                if (ch_before == '(' || ch_after == ')') throw new OrException();
                 boolean leftHasList = currentExpression.get(i - 1).getList() != null;
                 boolean rightHasList = currentExpression.get(i + 1).getList() != null;
                 if (leftHasList && rightHasList)

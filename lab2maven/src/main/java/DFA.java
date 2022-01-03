@@ -21,6 +21,8 @@ public class DFA {
         followPosDict = new HashMap<>();
         configureFollowPos(root);
         allStatesList = new ArrayList<>();
+        makeDFA();
+        startState = allStatesList.get(0);
     }
 
     public void goNode(Node node){
@@ -162,18 +164,23 @@ public class DFA {
     protected Set<Node> configureNodeUnion(State state, char symbol){
         Set<Node> resultSet = new HashSet<>();
         for (Node node : state.getStatePositions())
-            if (node.getValue().equals(String.valueOf(symbol)))
+            if (node.getValue().equals(String.valueOf(symbol)) && followPosDict.containsKey(node))
                 resultSet.addAll(followPosDict.get(node));
         return resultSet;
     }
 
     @Override
     public String toString() {
-        return "DFA{" +
-                "startState=" + startState +
-                ", currentState=" + currentState +
-                ", allStatesList=" + allStatesList +
-                '}';
+        StringBuilder builder = new StringBuilder("Start: ");
+        builder.append(startState.getStateID()).append('\n');
+        for (State st : allStatesList) {
+            builder.append(st.getStateID()).append(" -> ");
+            for (String tr : st.getTransitions().keySet()) {
+                builder.append(st.getNextState(tr).getStateID()).append("{").append(tr).append("} ");
+            }
+            builder.append('\n');
+        }
+        return builder.toString();
     }
 
 }

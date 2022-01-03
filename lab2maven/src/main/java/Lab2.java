@@ -15,6 +15,7 @@ public class Lab2 {
                 syntaxTree.makeSyntaxTree();
             }catch (RuntimeException exception){
                 System.out.println(exception.getMessage());
+                continue;
             }
             DFA dfa = new DFA(syntaxTree.getSyntaxTree(), syntaxTree.getAlphabet());
             //dfa.makeDFA();
@@ -23,11 +24,7 @@ public class Lab2 {
 
             System.out.println(dfa);
 
-            for (State state: dfa.getAllStatesList()) {
-                System.out.println(state.getStateID());
-                state.printTransitions();
-                System.out.println();
-            }
+
 
 
             System.out.print("Введите новое регулярное выражение или \"exit\" для выхода -> ");

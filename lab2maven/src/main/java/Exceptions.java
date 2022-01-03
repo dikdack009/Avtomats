@@ -5,16 +5,22 @@ public class Exceptions {
     }
 }
 class FigureBracketsException extends RuntimeException{
-    public FigureBracketsException(){super(new Exceptions() +
-            "Ошибка в использовании операции ‘повтор выражения’: r{x}.");}
+    public FigureBracketsException(){
+        super(new Exceptions() +
+            "Ошибка в использовании операции ‘повтор выражения’: r{x}.");
+    }
 }
 class BracketsException extends RuntimeException{
-    public BracketsException() {super(new Exceptions() +
-            "Неверное количество скобок.");}
+    public BracketsException() {
+        super(new Exceptions() +
+            "Неверное количество скобок.");
+    }
 }
 class StarException extends RuntimeException{
-    public StarException() {super(new Exceptions() +
-            "Ошибка в использовании операции ‘замыкание Клини’: r…");}
+    public StarException() {
+        super(new Exceptions() +
+            "Ошибка в использовании операции ‘замыкание Клини’: r…");
+    }
 }
 class OrException extends RuntimeException {
     public OrException() {
@@ -23,7 +29,8 @@ class OrException extends RuntimeException {
     }
 }
 class QuestionException extends RuntimeException {
-    public QuestionException() {super(new Exceptions() +
-            "Ошибка в использовании операции ‘опциональная часть’: r?");}
-
+    public QuestionException() {
+        super(new Exceptions() +
+            "Ошибка в использовании операции ‘опциональная часть’: r?");
+    }
 }
