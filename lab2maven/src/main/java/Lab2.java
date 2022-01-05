@@ -15,18 +15,14 @@ public class Lab2 {
                 syntaxTree.makeSyntaxTree();
             }catch (RuntimeException exception){
                 System.out.println(exception.getMessage());
+                System.out.print("Введите новое регулярное выражение или \"exit\" для выхода -> ");
+                scan = scanner.nextLine();
                 continue;
             }
             DFA dfa = new DFA(syntaxTree.getSyntaxTree(), syntaxTree.getAlphabet());
-            //dfa.makeDFA();
-            dfa.goNode(syntaxTree.getSyntaxTree());
-
+            dfa.makeDFA();
 
             System.out.println(dfa);
-
-
-
-
             System.out.print("Введите новое регулярное выражение или \"exit\" для выхода -> ");
             scan = scanner.nextLine();
         }

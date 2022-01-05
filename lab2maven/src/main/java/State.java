@@ -1,19 +1,25 @@
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class State {
+public class State implements Comparable<State>{
     private Map<String, State> transitions;
     private int stateID;
     private Set<Node> statePositions;
 
     public State(Integer lastID, Set<Node> statePositions) {
         this.statePositions = statePositions;
+        stateID = lastID;
+        transitions = new HashMap<>();
+    }
+
+    public State(Integer lastID) {
         stateID = lastID;
         transitions = new HashMap<>();
     }
@@ -28,16 +34,7 @@ public class State {
 
     @Override
     public String toString() {
-        return "State{" +
-//                "transitions=" + transitions +
-                ", stateID=" + stateID +
-                '}';
-    }
-
-    public void printTransitions(){
-        for (String key : transitions.keySet()) {
-            System.out.println(transitions.get(key) + " by " + key);
-        }
+        return String.valueOf(stateID);
     }
 
     @Override
@@ -50,5 +47,10 @@ public class State {
         if (this == o) return true;
         if(!(o instanceof State state)) return false;
         return statePositions.equals(state.statePositions);
+    }
+
+    @Override
+    public int compareTo(@NotNull State o) {
+        return this.stateID == o.stateID ? 1 : -1;
     }
 }

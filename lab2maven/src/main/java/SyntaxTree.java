@@ -2,7 +2,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -90,14 +89,10 @@ public class SyntaxTree {
         if (regex.contains("?")){
             String figureBefore;
             for (int i = 0; i < regex.length(); ++i){
-                System.out.println(regex);
                 if (regex.charAt(i) == '?'){
-                    System.out.println("нашли вопрос");
                     char charBefore = regex.charAt(i - 1);
-                    System.out.println(charBefore);
                     if (isMeta(charBefore)) throw new QuestionException();
                     if (charBefore == ')'){
-                        System.out.println("dfgfd");
                         int f2 = i - 1;
                         int f1 = 0;
                         for (int k = f2; k >= 0; --k){
@@ -119,17 +114,17 @@ public class SyntaxTree {
 
     protected long typicalCheckRegex(){
         regex = regex.replaceAll("\\.\\.\\.", "*");
-        try{
-            removeFigureBrackets();
-        }
-        catch (Exception ex) {
-            throw new FigureBracketsException();
-        }
         try {
             removeQuestion();
         }
         catch (Exception ex) {
             throw new QuestionException();
+        }
+        try{
+            removeFigureBrackets();
+        }
+        catch (Exception ex) {
+            throw new FigureBracketsException();
         }
         List<Character> charList = regex.chars().mapToObj(c -> (char) c).toList();
         long firstBracketCount = charList.stream().filter(s -> s.equals('(')).count();
@@ -140,9 +135,7 @@ public class SyntaxTree {
         long secondAngleBracketCount = charList.stream().filter(s -> s.equals('>')).count();
         if (firstAngleBracketCount != secondAngleBracketCount) throw new BracketsException();
 
-        System.out.println(regex);
         removeCaptureNames();
-        System.out.println(captureDictionary);
         return firstBracketCount;
     }
 
@@ -258,7 +251,7 @@ public class SyntaxTree {
 
     protected void replaceToOrNode(List<Expression> currentExpression) {
         int result = hasOrList(currentExpression);
-        if (currentExpression.get(0).getString().equals("|")) throw new OrException(); // TODO: do normal exception
+        //if (currentExpression.get(0).getString().equals("|")) throw new OrException(); // TODO: do normal exception
         while (result >= 0){
             Node orNode = new Node("|");
             Node leftChild = currentExpression.get(result - 1).getList();
@@ -289,7 +282,6 @@ public class SyntaxTree {
     }
 
     protected void makeSyntaxTree(){
-        System.out.println(regex);
         long numberBrackets = typicalCheckRegex() + 2;
         regex = "((" + regex + ")$)";
         System.out.println(regex);
