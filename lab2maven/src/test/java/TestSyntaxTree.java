@@ -1,7 +1,6 @@
 import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.DisplayNameGeneration;
 
 import java.util.HashSet;
 import java.util.List;
@@ -23,15 +22,42 @@ public class TestSyntaxTree {
     @DisplayName("Проверка замены фигурных скобок")
     public void testRemoveFigureBrackets(){
         String regex = "(a|b){3}";
-        String expectedRegex = "(a|b)".repeat(3);
+        String expectedRegex = "(" + "(a|b)".repeat(3) + ")";
         syntaxTree = new SyntaxTree(regex);
         syntaxTree.removeFigureBrackets();
         String actualRegex = syntaxTree.getRegex();
         assertEquals(expectedRegex, actualRegex, "Неверно раскрытые фигурные скобки.");
 
-        regex ="";
-        //assertThrows(Throwable.class, () -> storage.addCustomer(input),
-        //        "Не выброшено исключение при количестве элементов в строке больше 4");
+        regex = "a{3}";
+        expectedRegex = "(" + "a".repeat(3) + ")";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.removeFigureBrackets();
+        actualRegex = syntaxTree.getRegex();
+        assertEquals(expectedRegex, actualRegex, "Неверно раскрытые фигурные скобки.");
+    }
+
+    @Test
+    public void testRemoveQuestion(){
+        String regex = "a?";
+        String expectedRegex = "(a|^)";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.removeQuestion();
+        String actualRegex = syntaxTree.getRegex();
+        assertEquals(expectedRegex, actualRegex, "Неверно убранный знак вопроса.");
+
+        regex = "a?b";
+        expectedRegex = "(a|^)b";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.removeQuestion();
+        actualRegex = syntaxTree.getRegex();
+        assertEquals(expectedRegex, actualRegex, "Неверно убранный знак вопроса.");
+
+        regex = "(a|c)?b";
+        expectedRegex = "((a|c)|^)b";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.removeQuestion();
+        actualRegex = syntaxTree.getRegex();
+        assertEquals(expectedRegex, actualRegex, "Неверно убранный знак вопроса.");
     }
 
     @Test
@@ -59,15 +85,91 @@ public class TestSyntaxTree {
         state4.appendNewTransition("D", state4);
         dfa.setStartState(state0);
         dfa.setAllStatesList(List.of(state0, state1, state2, state3, state4));
-        System.out.println("all - " + dfa.getAllStatesList());
         Set <State> newSet = new TreeSet<>();
         newSet.add(state1);
         newSet.add(state4);
         newSet.add(state3);
         dfa.setAcceptStates(newSet);
-        System.out.println(dfa.getAcceptStates());
-        System.out.println(dfa);
         dfa.minimizationDFA();
-        System.out.println(dfa);
     }
+
+    @Test
+    public void testTypicalCheckRegex(){
+        String regex = "a{e}";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(FigureBracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = "a{}";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(FigureBracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = "a{";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(FigureBracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = "}";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(FigureBracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = "a(";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(BracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = ")";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(BracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = ">";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(BracketsException.class, () -> syntaxTree.typicalCheckRegex());
+
+        regex = "|?";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(QuestionException.class, () -> syntaxTree.typicalCheckRegex());
+    }
+
+    @Test
+    public void testOr(){
+        String regex = "(|a)";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(OrException.class, () -> syntaxTree.makeSyntaxTree());
+
+        regex = "|a";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(OrException.class, () -> syntaxTree.makeSyntaxTree());
+
+        regex = "(b|)a";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(OrException.class, () -> syntaxTree.makeSyntaxTree());
+
+        regex = "b|a";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.makeSyntaxTree();
+        Node expected = new Node("|", new Node("b"), new Node("a"));
+        Node expectedRegex = new Node(".");
+        expectedRegex.setLeftChild(expected);
+        expectedRegex.setRightChild(new Node("$"));
+        assertEquals(expectedRegex, syntaxTree.getSyntaxTree());
+    }
+
+    @Test
+    public void testStar(){
+        String regex = "|...";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(StarException.class, () -> syntaxTree.makeSyntaxTree());
+
+        regex = "...";
+        syntaxTree = new SyntaxTree(regex);
+        assertThrows(StarException.class, () -> syntaxTree.makeSyntaxTree());
+
+        regex = "a...";
+        syntaxTree = new SyntaxTree(regex);
+        syntaxTree.makeSyntaxTree();
+        Node expected = new Node("...", new Node("a"), null);
+        Node expectedRegex = new Node(".");
+        expectedRegex.setLeftChild(expected);
+        expectedRegex.setRightChild(new Node("$"));
+        assertEquals(expectedRegex, syntaxTree.getSyntaxTree());
+    }
+
 }

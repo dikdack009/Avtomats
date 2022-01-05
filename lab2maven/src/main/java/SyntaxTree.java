@@ -139,7 +139,6 @@ public class SyntaxTree {
         return firstBracketCount;
     }
 
-    //TODO: проверить если после угольной скобки ничего нет
     protected void removeCaptureNames(){
         captureDictionary = new TreeMap<>();
         int firstAngleBracket = regex.indexOf("<");
@@ -251,7 +250,6 @@ public class SyntaxTree {
 
     protected void replaceToOrNode(List<Expression> currentExpression) {
         int result = hasOrList(currentExpression);
-        //if (currentExpression.get(0).getString().equals("|")) throw new OrException(); // TODO: do normal exception
         while (result >= 0){
             Node orNode = new Node("|");
             Node leftChild = currentExpression.get(result - 1).getList();
@@ -267,13 +265,16 @@ public class SyntaxTree {
     }
 
     protected int hasOrList(List<Expression> currentExpression){
+        boolean leftHasList = currentExpression.get(0).getList() == null;
+        boolean rightHasList = currentExpression.get(0).getList() == null;
+        if (leftHasList && rightHasList && currentExpression.get(0).getString().equals("|")){
+            if (currentExpression.get(0).getString().equals("|")) throw new OrException();
+            if (currentExpression.get(currentExpression.size() - 1).getString().equals("|")) throw new OrException();
+        }
         for (int i = 1; i < currentExpression.size(); ++i){
             if (currentExpression.get(i).getString().equals("|")) {
-                char ch_before = currentExpression.get(i - 1).getString().charAt(0);
-                char ch_after = currentExpression.get(i + 1).getString().charAt(0);
-                if (ch_before == '(' || ch_after == ')') throw new OrException();
-                boolean leftHasList = currentExpression.get(i - 1).getList() != null;
-                boolean rightHasList = currentExpression.get(i + 1).getList() != null;
+                leftHasList = currentExpression.get(i - 1).getList() != null;
+                rightHasList = currentExpression.get(i + 1).getList() != null;
                 if (leftHasList && rightHasList)
                     return i;
             }
@@ -284,7 +285,6 @@ public class SyntaxTree {
     protected void makeSyntaxTree(){
         long numberBrackets = typicalCheckRegex() + 2;
         regex = "((" + regex + ")$)";
-        System.out.println(regex);
 
         List<Expression> currentExpression;                             // текущее утверждение
         Map<Integer, Integer> mapCheckedBrackets;                       // Мара для проверки скобок, проверили мы их ли нет
@@ -313,7 +313,6 @@ public class SyntaxTree {
             currentExpression.get(firstBracket).setString(tmp.get(0).getString());
             syntaxTree = currentExpression.get(0).getList();
         }
-        printTree(syntaxTree, -1);
     }
 
     protected void printTree(Node tree, int lines){

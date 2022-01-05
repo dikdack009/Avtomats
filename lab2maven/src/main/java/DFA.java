@@ -26,12 +26,6 @@ public class DFA {
         acceptStates = new HashSet<>();
     }
 
-
-    public void setAcceptStates(Set<State> acceptStates) {
-        this.acceptStates = acceptStates;
-    }
-
-
     protected boolean configureNullable(Node expression){
         return switch (expression.getValue()) {
             case "." -> configureNullable(expression.getLeftChild()) && configureNullable(expression.getRightChild());
@@ -169,8 +163,6 @@ public class DFA {
                 }
             }
         }
-        System.out.println(this);
-        minimizationDFA();
     }
 
     protected Set<Node> configureNodeUnion(State state, char symbol){
@@ -199,7 +191,6 @@ public class DFA {
                     tmp.add(curState);
 
         splitting.add(tmp);
-        System.out.println("Split: " + splitting);
         List<Set<State>> buf = splitting;
         List<Set<State>> bufSplitting = makeNewSplit(buf);
         while (!bufSplitting.equals(splitting)) {
@@ -271,10 +262,49 @@ public class DFA {
             }
             prev.add(gr);
         }
-        System.out.println("New split: " + prev);
         return prev;
     }
 
+    private String getPath(int i, int j, int k, Map<TripleNumbers, String> cashedKPath) {
+        return cashedKPath.containsKey(new TripleNumbers(i, j, k)) ?
+                cashedKPath.get(new TripleNumbers(i, j, k)) :
+                k_path(i, j, k);
+    }
+
+    public String k_path(int i, int j, int k) {
+        if (k == -1) {
+            // transChars.add(c.toString());
+            StringJoiner transChars = new StringJoiner("|", "(", ")");
+            for (Character c : alphabet)
+                if (allStatesList.get(i).getNextState(c.toString()) == allStatesList.get(j))
+                    transChars.add(c.toString());
+
+            if (transChars.length() == 2)
+                return i == j ? "E" : null;
+
+            return transChars.toString();
+        } else {
+            Map<TripleNumbers, String> cashedKPath = new HashMap<>();
+            String firstInF = getPath(i, j, k - 1, cashedKPath);
+            String secondInF = getPath(i, k, k - 1, cashedKPath);
+            String thirdInF = getPath(k, k, k - 1, cashedKPath);
+            String fourthInF = getPath(k, j, k - 1, cashedKPath);
+
+            String firstInFRes = firstInF == null ? "" : addBracket(firstInF);
+            boolean checkRes = secondInF == null || thirdInF == null || fourthInF == null;
+            String secondInFRes = checkRes ? "" : (firstInF == null ? "" : '|') + addBracket(secondInF);
+            String thirdInFRes = checkRes ? "" : thirdInF.equals("E") ? "E" : "(" + thirdInF + "|E)...";
+            String fourthInFRes = checkRes ? "" : addBracket(fourthInF);
+
+            String res = firstInFRes + secondInFRes + thirdInFRes + fourthInFRes;
+            cashedKPath.put(new TripleNumbers(i, j, k), res.equals("") ? null : res);
+            return res.equals("") ? null : res;
+        }
+    }
+
+    private String addBracket(String expr) {
+        return expr.contains("|") ? "(" + expr + ")" : expr;
+    }
 
     @Override
     public String toString() {
