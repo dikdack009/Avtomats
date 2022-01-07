@@ -14,7 +14,7 @@ public class State implements Comparable<State>{
     private Set<Node> statePositions;
 
     public State(Integer lastID, Set<Node> statePositions) {
-        this.statePositions = statePositions;
+        this.statePositions = new HashSet<>(statePositions);
         stateID = lastID;
         transitions = new HashMap<>();
     }

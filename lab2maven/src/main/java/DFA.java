@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class DFA {
     private Node root;
-    private Map <Node, Set<Node>> followPosDict;
+    private IdentityHashMap <Node, Set<Node>> followPosDict;
     private State startState;
     private State currentState;
     private List<State> allStatesList;
@@ -20,10 +20,21 @@ public class DFA {
     public DFA(Node root, Set<Character> alphabet) {
         this.alphabet = alphabet;
         this.root = root;
-        followPosDict = new HashMap<>();
+        followPosDict = new IdentityHashMap<>();
         configureFollowPos(root);
         allStatesList = new ArrayList<>();
-        acceptStates = new HashSet<>();
+        acceptStates = Collections.newSetFromMap(new IdentityHashMap<>());
+    }
+
+    public DFA(String root) {
+        SyntaxTree syntaxTree = new SyntaxTree(root);
+        syntaxTree.makeSyntaxTree();
+        this.root = syntaxTree.getSyntaxTree();
+        this.alphabet = syntaxTree.getAlphabet();
+        followPosDict = new IdentityHashMap<>();
+        configureFollowPos(this.root);
+        allStatesList = new ArrayList<>();
+        acceptStates = Collections.newSetFromMap(new IdentityHashMap<>());
     }
 
     protected boolean configureNullable(Node expression){
@@ -37,7 +48,7 @@ public class DFA {
 
     protected Set<Node> configureFirstPos(Node expression, Set<Node> firstPosSet){
         if (firstPosSet == null){
-            firstPosSet = new HashSet<>();
+            firstPosSet = Collections.newSetFromMap(new IdentityHashMap<>());
         }
         switch (expression.getValue()) {
             case ".":
@@ -66,7 +77,7 @@ public class DFA {
 
     protected Set<Node> configureLastPos(Node expression, Set<Node> lastPosSet){
         if (lastPosSet == null){
-            lastPosSet = new HashSet<>();
+            lastPosSet = Collections.newSetFromMap(new IdentityHashMap<>());
         }
         switch (expression.getValue()) {
             case ".":
@@ -98,24 +109,24 @@ public class DFA {
         switch (expression.getValue()) {
             case "." -> {
                 configureFollowPos(expression.getLeftChild());
-                Set<Node> leftFollowSet = new HashSet<>(configureLastPos(expression.getLeftChild(), null));
-                Set<Node> rightFollowSet = new HashSet<>(configureFirstPos(expression.getRightChild(), null));
+                Set<Node> leftFollowSet = configureLastPos(expression.getLeftChild(), null);
+                Set<Node> rightFollowSet = configureFirstPos(expression.getRightChild(), null);
                 for (Node node : leftFollowSet) {
-                    if (followPosDict.containsKey(node)) {
-                        followPosDict.get(node).addAll(rightFollowSet);
-                    } else {
-                        followPosDict.put(node, rightFollowSet);
+                    if (!followPosDict.containsKey(node)) {
+                        followPosDict.put(node, Collections.newSetFromMap(new IdentityHashMap<>()));
                     }
+                    followPosDict.get(node).addAll(rightFollowSet);
                 }
                 configureFollowPos(expression.getRightChild());
             }
             case "..." -> {
-                Set<Node> lastPosSet = new HashSet<>(configureLastPos(expression.getLeftChild(), null));
-                Set<Node> firstPosSet = new HashSet<>(configureFirstPos(expression.getLeftChild(), null));
+                Set<Node> lastPosSet = configureLastPos(expression.getLeftChild(), null);
+                Set<Node> firstPosSet = configureFirstPos(expression.getLeftChild(), null);
                 for (Node node : lastPosSet) {
                     if (followPosDict.containsKey(node)) {
                         followPosDict.get(node).addAll(firstPosSet);
-                    } else {
+                    }
+                    else {
                         followPosDict.put(node, firstPosSet);
                     }
                 }
@@ -137,23 +148,23 @@ public class DFA {
         startState = state;
         currentState = state;
         while (!unmarkedID.isEmpty()){
-            List<Integer> list = new ArrayList<>(unmarkedID);
-            Integer currentUnmarked = list.get(0);
-            unmarkedID.remove(currentUnmarked);
+            int current = unmarkedID.iterator().next();
+            unmarkedID.remove(current);
             alphabet.remove('$');
             alphabet.remove('^');
 
+            System.out.println(alphabet);
             for(char symbol : alphabet){
-                State newState = new State(lastID + 1, configureNodeUnion(allStatesList.get(currentUnmarked), symbol));
+                System.out.println(allStatesList);
+                State newState = new State(lastID + 1, configureNodeUnion(current, symbol));
                 if (!allStatesList.contains(newState)){
-                    ++lastID;
-                    unmarkedID.add(lastID);
+                    unmarkedID.add(++lastID);
                     allStatesList.add(newState);
                 }
                 else{
                     newState = allStatesList.get(allStatesList.indexOf(newState));
                 }
-                allStatesList.get(currentUnmarked).appendNewTransition(String.valueOf(symbol), newState);
+                allStatesList.get(current).appendNewTransition(String.valueOf(symbol), newState);
             }
         }
         for (State st: allStatesList) {
@@ -163,11 +174,12 @@ public class DFA {
                 }
             }
         }
+        //minimizationDFA();
     }
 
-    protected Set<Node> configureNodeUnion(State state, char symbol){
-        Set<Node> resultSet = new HashSet<>();
-        for (Node node : state.getStatePositions())
+    protected Set<Node> configureNodeUnion(int state, char symbol){
+        Set<Node> resultSet = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Node node : allStatesList.get(state).getStatePositions())
             if (node.getValue().equals(String.valueOf(symbol)))
                 resultSet.addAll(followPosDict.get(node));
         return resultSet;
@@ -183,14 +195,17 @@ public class DFA {
 
     protected void minimizationDFA() {
         List<Set<State>> splitting = new ArrayList<>();
-        splitting.add(acceptStates);
-        Set<State> tmp = new HashSet<>();
+        splitting.add(Collections.newSetFromMap(new IdentityHashMap<>()));
+        splitting.add(Collections.newSetFromMap(new IdentityHashMap<>()));
+
+        for (State state : acceptStates)
+            splitting.get(0).add(state);
+
         for(State curState : allStatesList)
             for (State st :acceptStates)
                 if (!st.equals(curState))
-                    tmp.add(curState);
+                    splitting.get(1).add(curState);
 
-        splitting.add(tmp);
         List<Set<State>> buf = splitting;
         List<Set<State>> bufSplitting = makeNewSplit(buf);
         while (!bufSplitting.equals(splitting)) {
