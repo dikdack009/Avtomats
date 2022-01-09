@@ -1,15 +1,14 @@
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class State implements Comparable<State>{
-    private Map<String, State> transitions;
+public class State{
+    private HashMap<String, State> transitions;
     private int stateID;
     private Set<Node> statePositions;
 
@@ -22,6 +21,7 @@ public class State implements Comparable<State>{
     public State(Integer lastID) {
         stateID = lastID;
         transitions = new HashMap<>();
+        statePositions = new HashSet<>();
     }
 
     protected State getNextState(String symbol){
@@ -46,11 +46,17 @@ public class State implements Comparable<State>{
     public boolean equals(Object o){
         if (this == o) return true;
         if(!(o instanceof State state)) return false;
+        if (statePositions.equals(state.statePositions) && statePositions.size() == 1) return false;
         return statePositions.equals(state.statePositions);
     }
 
-    @Override
-    public int compareTo(@NotNull State o) {
-        return this.stateID == o.stateID ? 1 : -1;
+    public boolean isEnd() {
+        for (Node node: this.getStatePositions()) {
+            if (node.getValue().equals("$")) {
+                return true;
+            }
+        }
+        return false;
     }
+
 }

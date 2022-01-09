@@ -2,7 +2,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
@@ -30,11 +32,14 @@ public class DFA {
         SyntaxTree syntaxTree = new SyntaxTree(root);
         syntaxTree.makeSyntaxTree();
         this.root = syntaxTree.getSyntaxTree();
+        //this.root.printTree(this.root, -1);
         this.alphabet = syntaxTree.getAlphabet();
         followPosDict = new IdentityHashMap<>();
         configureFollowPos(this.root);
         allStatesList = new ArrayList<>();
         acceptStates = Collections.newSetFromMap(new IdentityHashMap<>());
+        makeDFA();
+        startState = allStatesList.get(0);
     }
 
     protected boolean configureNullable(Node expression){
@@ -139,24 +144,21 @@ public class DFA {
 
     }
 
+
     protected void makeDFA(){
         Set<Integer> unmarkedID = new HashSet<>();
-        Integer lastID = 0;
+        int lastID = 0;
         unmarkedID.add(lastID);
-        State state = new State(lastID, configureFirstPos(root, null));
-        allStatesList.add(state);
-        startState = state;
-        currentState = state;
+        allStatesList.add(new State(lastID, configureFirstPos(root, null)));
         while (!unmarkedID.isEmpty()){
             int current = unmarkedID.iterator().next();
             unmarkedID.remove(current);
             alphabet.remove('$');
             alphabet.remove('^');
 
-            System.out.println(alphabet);
             for(char symbol : alphabet){
-                System.out.println(allStatesList);
                 State newState = new State(lastID + 1, configureNodeUnion(current, symbol));
+                currentState = newState;
                 if (!allStatesList.contains(newState)){
                     unmarkedID.add(++lastID);
                     allStatesList.add(newState);
@@ -319,6 +321,82 @@ public class DFA {
 
     private String addBracket(String expr) {
         return expr.contains("|") ? "(" + expr + ")" : expr;
+    }
+
+    public DFA and(DFA other) {
+        DFA result = new DFA("^");
+        result.allStatesList.clear();
+        for (int i = 0; i < this.allStatesList.size() * other.allStatesList.size(); ++i)
+            result.allStatesList.add(new State(i));
+        result.startState = result.allStatesList.get(this.startState.getStateID() * other.allStatesList.size() + other.startState.getStateID());
+        Set<Character> buf = new HashSet<>();
+        buf.addAll(this.alphabet);
+        buf.addAll(other.alphabet);
+        result.setAlphabet(buf);
+        for (State st1 : this.allStatesList) {
+            for (State st2 : other.allStatesList) {
+                for (char c : result.alphabet) {
+                    if (st1.isEnd() && st2.isEnd()) {
+                        Set<Node> tmp = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).getStatePositions();
+                        tmp.add(new Node("$"));
+                        result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).setStatePositions(tmp);
+                        result.acceptStates.add(result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()));
+                    }
+                    if (this.startState == st1 && other.startState == st2){
+                        result.startState = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID());
+                    }
+                    State first = st1.getNextState(String.valueOf(c));
+                    State second = st2.getNextState(String.valueOf(c));
+                    if (second != null && first != null)
+                    result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID())
+                            .appendNewTransition(String.valueOf(c), result.allStatesList.get(first.getStateID() * other.allStatesList.size() + second.getStateID()));
+                }
+            }
+        }
+        return result;
+    }
+
+    public DFA and(String other) {
+        DFA another = new DFA(other);
+        return this.and(another);
+    }
+
+    public DFA addition(){
+        DFA result = new DFA("^");
+        StringJoiner tm = new StringJoiner("|", "(", ")");
+        for(Character ch : this.alphabet)
+            tm.add(ch.toString());
+        DFA other = new DFA(tm + "...");
+        result.allStatesList.clear();
+        for (int i = 0; i < this.allStatesList.size() * other.allStatesList.size(); ++i)
+            result.allStatesList.add(new State(i));
+        result.startState = result.allStatesList.get(this.startState.getStateID() * other.allStatesList.size() + other.startState.getStateID());
+        Set<Character> buf = new HashSet<>();
+        buf.addAll(this.alphabet);
+        buf.addAll(other.alphabet);
+        result.setAlphabet(buf);
+        System.out.println("Alfavit " + result.alphabet);
+        for (State st1 : this.allStatesList) {
+            for (State st2 : other.allStatesList) {
+                for (char c : result.alphabet) {
+                    if (!st1.isEnd() && st2.isEnd()) {
+                        Set<Node> tmp = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).getStatePositions();
+                        tmp.add(new Node("$"));
+                        result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).setStatePositions(tmp);
+                        result.acceptStates.add(result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()));
+                    }
+                    if (this.startState == st1 && other.startState == st2){
+                        result.startState = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID());
+                    }
+                    State first = st1.getNextState(String.valueOf(c));
+                    State second = st2.getNextState(String.valueOf(c));
+                    if (second != null && first != null)
+                        result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID())
+                                .appendNewTransition(String.valueOf(c), result.allStatesList.get(first.getStateID() * other.allStatesList.size() + second.getStateID()));
+                }
+            }
+        }
+        return result;
     }
 
     @Override

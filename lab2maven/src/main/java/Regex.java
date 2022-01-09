@@ -16,11 +16,14 @@ public class Regex {
         compile = false;
     }
 
+    public Regex(DFA dfa) {
+        this.regex = "";
+        this.dfa = dfa;
+        compile = false;
+    }
+
     public void compile(){
         dfa = new DFA(regex);
-        dfa.makeDFA();
-        dfa.getRoot().printTree(dfa.getRoot(), -1);
-        System.out.println(dfa);
         compile = true;
     }
 
@@ -31,6 +34,28 @@ public class Regex {
                 state = state.getNextState(String.valueOf(inputString.charAt(i)));
             else return false;
         }
-        return state.getStatePositions().stream().anyMatch(lit -> lit.getValue().equals("$"));
+        //return state.getStatePositions().stream().anyMatch(lit -> lit.getValue().equals("$"));
+        return dfa.getAcceptStates().contains(state);
+    }
+
+    public void findAll(String inputString) {
+        System.out.print("Все подходящие подстроки: ");
+        if (match(inputString)) System.out.print(inputString);
+        else {
+            for (int i = 0; i < inputString.length(); ++i) {
+                int rememberAccept = -1;
+                if (dfa.getAlphabet().contains((inputString.charAt(i))))
+                    for (int j = i; j < inputString.length(); ++j) {
+                        String currentStr = inputString.substring(i, j + 1);
+                        if (match(currentStr)) {
+                            rememberAccept = j;
+                        }
+                    }
+                if (rememberAccept != -1) {
+                    System.out.print(inputString.substring(i, rememberAccept + 1) + " ");
+                    i = rememberAccept;
+                }
+            }
+        }
     }
 }
