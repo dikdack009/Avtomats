@@ -14,10 +14,10 @@ public class Lab2 {
             scan = scanner.nextLine();
             DFA dfa = new DFA(scan);
 //            -------------------------------
-//            DFA result = regex.getDfa().and(dfa);
-//            regex = new Regex(result);
+            DFA result = regex.getDfa().and(dfa);
+            regex = new Regex(result);
 //            -------------------------------
-            regex = new Regex(dfa.addition());
+//            regex = new Regex(dfa.addition());
 //            -------------------------------
 //            try {
 //                regex = new Regex(scan);
