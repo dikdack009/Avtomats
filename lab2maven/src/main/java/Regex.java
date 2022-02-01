@@ -31,13 +31,14 @@ public class Regex {
 
     public boolean match(String inputString){
         State state = dfa.getStartState();
+        //System.out.println(dfa.getAlphabet());
         for (int i = 0; i < inputString.length(); ++i){
             if (dfa.getAlphabet().contains((inputString.charAt(i)))) {
                 state = state.getNextState(String.valueOf(inputString.charAt(i)));
             }
             else return false;
         }
-        System.out.println("END\n" + state);
+        //System.out.println("END\n" + state);
         return state.getStatePositions().stream().anyMatch(lit -> lit.getValue().equals("$"));
     }
 

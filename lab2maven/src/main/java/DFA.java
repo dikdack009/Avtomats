@@ -2,7 +2,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +17,7 @@ public class DFA {
     private List<State> allStatesList;
     private Set<Character> alphabet;
     private Set<State> acceptStates;
+    private String regex;
 
     public DFA(Node root, Set<Character> alphabet) {
         this.alphabet = alphabet;
@@ -40,6 +40,7 @@ public class DFA {
         acceptStates = Collections.newSetFromMap(new IdentityHashMap<>());
         makeDFA();
         startState = allStatesList.get(0);
+        regex = root;
     }
 
     protected boolean configureNullable(Node expression){
@@ -353,6 +354,11 @@ public class DFA {
                 }
             }
         }
+        result.alphabet.clear();
+        for (Character a1 : this.alphabet)
+            for (Character a2 : other.alphabet){
+                if (a1.equals(a2)) result.alphabet.add(a1);
+            }
         return result;
     }
 
@@ -361,63 +367,76 @@ public class DFA {
         return this.and(another);
     }
 
-    public DFA addition(){
+    public DFA addition() {
+        //System.out.println(regex);
         System.out.print("Хотите ввести иной алфавит ? ");
         Scanner alphabet = new Scanner(System.in);
         Set<Character> buf = new HashSet<>();
 
-        if (alphabet.nextLine().equals("y")){
+        //StringBuilder a = new StringBuilder(regex);
+        DFA newThis = this;
+        if (alphabet.nextLine().equals("y")) {
             System.out.println("Вводите алфавит(или пустую строчку для завершения ввода):");
             String letter = alphabet.nextLine();
-            while (!letter.equals("")){
+            while (!letter.equals("")) {
                 buf.add(letter.charAt(0));
+                if (!newThis.alphabet.contains(letter.charAt(0))) {
+//                    a.append("|").append(letter.charAt(0));
+                    State tr = null;
+                    for (State st : newThis.allStatesList) {
+                        if (!newThis.acceptStates.contains(st)) {
+                            tr = st;
+                            break;
+                        }
+                    }
+                    if (tr == null){
+                        tr = new State(newThis.allStatesList.size(), Set.of(new Node(String.valueOf(letter.charAt(0)))));
+                        for (Character s : newThis.alphabet){
+                            tr.appendNewTransition(s.toString(), tr);
+                        }
+                        newThis.allStatesList.add(tr);
+                    }
+                    for (State st : newThis.allStatesList){
+                        st.appendNewTransition(String.valueOf(letter.charAt(0)), tr);
+                    }
+                }
                 letter = alphabet.nextLine();
             }
-        }
-        else
+            //System.out.println("a = " + a);
+            //newThis = new DFA(a.toString());
+            //newThis.getRoot().printTree(newThis.getRoot(), -1);
+        } else
             buf.addAll(this.alphabet);
-//
-//        if (this.alphabet.stream().noneMatch(buf::contains)){
-//            StringJoiner tm = new StringJoiner("|", "(", ")");
-//            for(Character ch : buf)
-//                tm.add(ch.toString());
-//            return new DFA(tm + "...");
-//        }
 
         DFA result = new DFA("^");
         StringJoiner tm = new StringJoiner("|", "(", ")");
-        for(Character ch : buf)
+        for (Character ch : buf)
             tm.add(ch.toString());
         DFA other = new DFA(tm + "...");
-        result.allStatesList.clear();
-        for (int i = 0; i < this.allStatesList.size() * other.allStatesList.size(); ++i)
-            result.allStatesList.add(new State(i));
-        result.startState = result.allStatesList.get(this.startState.getStateID() * other.allStatesList.size() + other.startState.getStateID());
+        buf.addAll(newThis.alphabet);
+        buf.addAll(other.alphabet);
         result.setAlphabet(buf);
-        System.out.println("This\n" + this);
-        System.out.println("Other\n" + other);
-        //result.setAcceptStates(new HashSet<>());
-//        List <State> a = this.getAllStatesList();
-//        a.add(new State(allStatesList.size()));
-//        this.setAllStatesList(a);
-        for (State st1 : this.allStatesList) {
+        result.allStatesList.clear();
+        for (int i = 0; i < newThis.allStatesList.size() * other.allStatesList.size(); ++i)
+            result.allStatesList.add(new State(i));
+        result.startState = result.allStatesList.get(newThis.startState.getStateID() * other.allStatesList.size() + other.startState.getStateID());
+        result.setAlphabet(buf);
+//        System.out.println("Из чего вычитаем:");
+//        System.out.print(other);
+//        System.out.println(other.alphabet);
+//        System.out.println();
+//        System.out.println("Что вычитаем:");
+//        System.out.print(newThis);
+//        System.out.println(newThis.alphabet);
+//        System.out.println();
+        for (State st1 : newThis.allStatesList) {
             for (State st2 : other.allStatesList) {
-                for (char c : result.alphabet)
+                for (char c : result.alphabet) {
                     if (!st1.isEnd() && st2.isEnd()) {
                         Set<Node> tmp = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).getStatePositions();
                         tmp.add(new Node("$"));
                         result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()).setStatePositions(tmp);
                         result.acceptStates.add(result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID()));
-                    }
-            }
-        }
-        System.out.println("Ацепты - " + result.acceptStates);
-        for (State st1 : this.allStatesList) {
-            for (State st2 : other.allStatesList) {
-                for (char c : result.alphabet) {
-                    if (!this.alphabet.contains(c) && !result.acceptStates.isEmpty()) {
-                        st1.appendNewTransition(String.valueOf(c), result.acceptStates.stream().toList().get(0));
-                        result.acceptStates.stream().toList().get(0).getStatePositions().add(new Node("$"));
                     }
                     if (this.startState == st1 && other.startState == st2){
                         result.startState = result.allStatesList.get(st1.getStateID() * other.allStatesList.size() + st2.getStateID());
@@ -430,7 +449,9 @@ public class DFA {
                 }
             }
         }
-        System.out.println("Res\n" + result);
+        result.setAlphabet(other.getAlphabet());
+        //abcSystem.out.println("Res\n" + result + "\n" + result.alphabet);
+
         return result;
     }
 
