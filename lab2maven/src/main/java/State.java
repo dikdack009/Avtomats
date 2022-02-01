@@ -34,7 +34,7 @@ public class State{
 
     @Override
     public String toString() {
-        return stateID + String.valueOf(statePositions);
+        return String.valueOf(stateID);
     }
 
     @Override

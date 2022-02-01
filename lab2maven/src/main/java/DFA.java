@@ -392,7 +392,8 @@ public class DFA {
                     if (tr == null){
                         tr = new State(newThis.allStatesList.size(), Set.of(new Node(String.valueOf(letter.charAt(0)))));
                         for (Character s : newThis.alphabet){
-                            tr.appendNewTransition(s.toString(), tr);
+                            if (tr.getNextState(s.toString()) == null)
+                                tr.appendNewTransition(s.toString(), tr);
                         }
                         newThis.allStatesList.add(tr);
                     }
@@ -421,14 +422,14 @@ public class DFA {
             result.allStatesList.add(new State(i));
         result.startState = result.allStatesList.get(newThis.startState.getStateID() * other.allStatesList.size() + other.startState.getStateID());
         result.setAlphabet(buf);
-//        System.out.println("Из чего вычитаем:");
-//        System.out.print(other);
-//        System.out.println(other.alphabet);
-//        System.out.println();
-//        System.out.println("Что вычитаем:");
-//        System.out.print(newThis);
-//        System.out.println(newThis.alphabet);
-//        System.out.println();
+        System.out.println("Из чего вычитаем:");
+        System.out.print(other);
+        System.out.println(other.alphabet);
+        System.out.println();
+        System.out.println("Что вычитаем:");
+        System.out.print(newThis);
+        System.out.println(newThis.alphabet);
+        System.out.println();
         for (State st1 : newThis.allStatesList) {
             for (State st2 : other.allStatesList) {
                 for (char c : result.alphabet) {
@@ -450,7 +451,7 @@ public class DFA {
             }
         }
         result.setAlphabet(other.getAlphabet());
-        //abcSystem.out.println("Res\n" + result + "\n" + result.alphabet);
+        System.out.println("Res\n" + result + "\n" + result.alphabet);
 
         return result;
     }

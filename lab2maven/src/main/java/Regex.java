@@ -42,7 +42,7 @@ public class Regex {
         return state.getStatePositions().stream().anyMatch(lit -> lit.getValue().equals("$"));
     }
 
-    public void findAll(String inputString) {
+    public String findAll(String inputString) {
         StringJoiner tm = new StringJoiner(" ", "Все подходящие подстроки: [", "]");
         if (match(inputString)) tm.add(inputString);
         else {
@@ -61,6 +61,6 @@ public class Regex {
                 }
             }
         }
-        System.out.println(tm);
+        return tm.toString();
     }
 }

@@ -172,4 +172,61 @@ public class TestSyntaxTree {
         assertEquals(expectedRegex, syntaxTree.getSyntaxTree());
     }
 
+    @Test
+    public void testMatch(){
+        Regex regex = new Regex("a|b");
+        regex.compile();
+
+        assertTrue(regex.match("a"));
+        assertTrue(regex.match("b"));
+        assertFalse(regex.match("aa"));
+        assertFalse(regex.match("bb"));
+        assertFalse(regex.match("ab"));
+        assertFalse(regex.match("ba"));
+        assertFalse(regex.match(""));
+
+        regex = new Regex("a...");
+        regex.compile();
+
+        assertTrue(regex.match("a"));
+        assertTrue(regex.match("aa"));
+        assertTrue(regex.match("aaa"));
+        assertTrue(regex.match(""));
+        assertFalse(regex.match("b"));
+        assertFalse(regex.match("ba"));
+
+        regex = new Regex("a?");
+        regex.compile();
+
+        assertTrue(regex.match("a"));
+        assertTrue(regex.match(""));
+        assertFalse(regex.match("b"));
+
+        regex = new Regex("ab");
+        regex.compile();
+
+        assertTrue(regex.match("ab"));
+        assertFalse(regex.match("aa"));
+        assertFalse(regex.match("bb"));
+        assertFalse(regex.match("ba"));
+        assertFalse(regex.match(""));
+    }
+
+    @Test
+    public void testFindAll(){
+        Regex regex = new Regex("a|b");
+        regex.compile();
+
+        assertEquals(regex.findAll("abc"), "Все подходящие подстроки: [<a> <b>]");
+
+        regex = new Regex("ab");
+        regex.compile();
+
+        assertEquals(regex.findAll("abc"), "Все подходящие подстроки: [<ab>]");
+
+        regex = new Regex("abc");
+        regex.compile();
+
+        assertEquals(regex.findAll("abcabcabc"), "Все подходящие подстроки: [<abc> <abc> <abc>]");
+    }
 }

@@ -52,7 +52,7 @@ public class Lab2 {
             String str = scanner.nextLine();
             while (!str.equals("exit")){
                 System.out.println("\nСтрока <" + str + "> "  + (regex.match(str) ? "подходит!" : "не подходит!"));
-                regex.findAll(str);
+                System.out.println(regex.findAll(str));
                 System.out.print("\n\nВведите новую строку или \"exit\" для выхода -> ");
                 str = scanner.nextLine();
             }
