@@ -34,3 +34,10 @@ class QuestionException extends RuntimeException {
             "Ошибка в использовании операции ‘опциональная часть’: r?");
     }
 }
+
+class NULLRegexException extends RuntimeException {
+    public NULLRegexException() {
+        super(new Exceptions() +
+                "Использование пустого регулярного выражения не допустимо!");
+    }
+}

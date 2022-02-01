@@ -126,6 +126,7 @@ public class SyntaxTree {
         catch (Exception ex) {
             throw new FigureBracketsException();
         }
+        if (regex.length() == 0) throw new NULLRegexException();
         List<Character> charList = regex.chars().mapToObj(c -> (char) c).toList();
         long firstBracketCount = charList.stream().filter(s -> s.equals('(')).count();
         long secondBracketCount = charList.stream().filter(s -> s.equals(')')).count();
